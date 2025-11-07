@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>🛰️ SVRN — Host Control Center</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f6f8ff;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 750px;
+      margin: 40px auto;
+      background: #ffffff;
+      padding: 25px 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .title {
+      font-size: 28px;
+      color: #0047ab;
+      margin-bottom: 20px;
+    }
+    .stats div {
+      font-size: 20px;
+      margin: 10px 0;
+      padding: 8px;
+      border-radius: 10px;
+      background: #eef3ff;
+    }
+    h2 {
+      margin-top: 25px;
+      font-size: 22px;
+      color: #333;
+      border-top: 2px solid #cdddf6;
+      padding-top: 10px;
+    }
+    .messages-box {
+      margin-top: 15px;
+      text-align: left;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .message-entry {
+      background: #f4f6ff;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    .message-entry:hover {
+      transform: scale(1.01);
+      background: #eef;
+    }
+    .high-priority {
+      border-left: 5px solid red;
+      padding-left: 8px;
+    }
+    .read-more {
+      color: #007bff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1 class="title">🛰️ SVRN Host Control Center</h1>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div id="queueBox">Queue: <span id="queueCount">0</span></div>
+      <div id="deliveredBox">Delivered: <span id="deliveredCount">0</span></div>
+      <div id="totalBox">Total Stored: <span id="totalCount">0</span></div>
+    </div>
+
+
+    <!-- Decrypted Messages -->
+    <h2>📝 Decrypted Client Messages</h2>
+    <div id="decryptedMessages" class="messages-box"></div>
+
+
+  <footer>© 2025 SVRN Secure Network</footer>
+
+<script>
+  const BASE_URL = "{{ request.host_url }}";  
+
+  let lastDelivered = 0;
+let popupShownFor = 0; // tracks the delivered count we last showed popup for
+
+function showPopup(msg) {
+  const popup = document.createElement("div");
+  popup.textContent = msg;
+  Object.assign(popup.style, {
+    position: "fixed",
+    bottom: "25px",
+    right: "25px",
+    background: "#0047ab",
+    color: "white",
+    padding: "12px 20px",
+    borderRadius: "10px",
+    fontWeight: "bold",
+    zIndex: 1000,
+    boxShadow: "0 2px 6px rgba(0,0,0,0.3)"
+  });
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 2000); // disappears after 2 seconds
+}
+
+async function updateStatus() {
+  try {
+    const res = await fetch(`${BASE_URL}/api/status`);
+    if (!res.ok) throw new Error("Backend unreachable");
+    const data = await res.json();
+
+    document.getElementById("queueCount").innerText = data.queue_length;
+    document.getElementById("deliveredCount").innerText = data.delivered_count;
+    document.getElementById("totalCount").innerText = data.total_stored;
+
+    if (data.delivered_count > lastDelivered && data.delivered_count > popupShownFor) {
+      const diff = data.delivered_count - lastDelivered;
+      showPopup(`📡 ${diff} new message(s) received`);
+      popupShownFor = data.delivered_count; // mark popup as shown for these messages
+      fetchDecryptedMessages();
+    }
+
+    lastDelivered = data.delivered_count;
+
+  } catch (e) {
+    console.warn("⚠️ Backend unreachable");
+  }
+}
+
+
+  // 📨 Recent Messages
+  async function fetchRecentMessages() {
+    try {
+      const res = await fetch(`${BASE_URL}/api/recent`);
+      if (!res.ok) return;
+      const messages = await res.json();
+      const box = document.getElementById("recentMessages");
+      box.innerHTML = "";
+
+      messages.slice(-6).reverse().forEach(m => {
+        const div = document.createElement("div");
+        div.className = "message-entry";
+        div.innerHTML = `<b>Device:</b> ${m.sender_id || "Unknown"}<br>
+                         <b>File:</b> ${m.filename}<br>
+                         <small>${m.timestamp}</small>`;
+        box.appendChild(div);
+      });
+    } catch (err) {
+      console.error("fetchRecentMessages error", err);
+    }
+  }
+
+  // 🗝️ Decrypted messages
+  async function fetchDecryptedMessages() {
+    try {
+      const res = await fetch(`${BASE_URL}/api/decrypted_messages`);
+      if (!res.ok) return;
+      const messages = await res.json();
+      const box = document.getElementById("decryptedMessages");
+      box.innerHTML = "";
+
+      messages.forEach(m => {
+        const div = document.createElement("div");
+        div.className = "message-entry";
+        if(m.priority == 0) div.classList.add("high-priority");
+
+        let preview = m.content.slice(0,200);
+        let extra = m.content.length > 200 ? m.content.slice(200) : "";
+        div.innerHTML = `
+          <b>From:</b> ${m.sender}<br>
+          <small>${m.timestamp}</small><br>
+          <span>${preview}</span>
+          ${extra ? `<span id="more" style="display:none">${extra}</span> <span class="read-more" onclick="this.previousElementSibling.style.display='inline';this.style.display='none'">Read More</span>` : ""}
+        `;
+        box.appendChild(div);
+      });
+    } catch(err) {
+      console.error("fetchDecryptedMessages error", err);
+    }
+  }
+
+  // 📜 Transmission logs (last 10 messages)
+
+  // Auto refresh
+  setInterval(updateStatus, 3000);
+  setInterval(fetchDecryptedMessages, 5000);
+
+  // Initial fetch
+  updateStatus();
+  fetchDecryptedMessages();
+</script>
+</body>
+</html>

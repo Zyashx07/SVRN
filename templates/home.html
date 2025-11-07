@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SVRN Messaging System</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0b0c10;
+      color: #c5c6c7;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      color: #66fcf1;
+      margin-top: 60px;
+      font-size: 2.2rem;
+    }
+
+    p {
+      color: #c5c6c7;
+      font-size: 1.1rem;
+      margin-bottom: 40px;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .menu a {
+      display: inline-block;
+      background: #1f2833;
+      color: #66fcf1;
+      text-decoration: none;
+      padding: 15px 40px;
+      border-radius: 12px;
+      transition: 0.3s;
+      font-weight: 600;
+      width: 250px;
+    }
+
+    .menu a:hover {
+      background: #45a29e;
+      color: #0b0c10;
+      transform: scale(1.05);
+    }
+
+    footer {
+      margin-top: 60px;
+      padding: 20px;
+      font-size: 0.9rem;
+      color: #888;
+      border-top: 1px solid #1f2833;
+    }
+  </style>
+</head>
+<body>
+  <h1>📡 SVRN Secure Message Network</h1>
+  <p>Welcome to your encrypted communication hub.</p>
+
+<!-- Pseudocode -->
+<div class="menu">
+  <!-- Always show client panel -->
+  <a href="{{ url_for('client') }}">💬 Client Panel</a>
+</div>
+
+
+  <footer>© 2025 SVRN Secure Network</footer>
+</body>
+</html>

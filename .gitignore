@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+instance/svrn_messages.db
+data/
+venv/
+.env
