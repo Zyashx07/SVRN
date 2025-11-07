@@ -29,7 +29,7 @@
 </div>
 
 <script>
-const BASE_URL = "https://svrn.onrender.com";  // 👈 replace with your host's IP
+const BASE_URL = "https://svrn-host.onrender.com"; // <- replace with your actual Render URL
 
 function log(msg) {
   const logBox = document.getElementById("log");
@@ -38,7 +38,7 @@ function log(msg) {
 }
 
 async function sendMessage() {
-  const text = document.getElementById("textMessage").value;
+  const text = document.getElementById("textMessage").value.trim();
   const priority = parseInt(document.getElementById("priority").value);
   const device = document.getElementById("deviceId").value.trim() || "client-unknown";
 
@@ -46,23 +46,30 @@ async function sendMessage() {
 
   const body = {
     text: `[${device}] ${text}`,
-    priority: priority,
+    priority,
     passphrase: "default",
-	//sender_id = data.get('device_id', request.remote_addr)
-	sender_id:deviceId
+    sender_id: device
   };
 
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/send_text`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (res.ok) log("✅ Message sent to host server");
-    else log("❌ Failed to send message");
-  } catch (err) {
-    log("⚠️ Host unreachable");
+  for (let i = 0; i < 3; i++) { // retry 3 times
+    try {
+      const res = await fetch(`${BASE_URL}/api/send_text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        log("✅ Message sent to host server");
+        return;
+      } else {
+        log("❌ Failed to send message, retrying...");
+      }
+    } catch (err) {
+      log("⚠️ Host unreachable, retrying...");
+    }
+    await new Promise(r => setTimeout(r, 1500)); // wait 1.5s before retry
   }
+  log("❌ Failed to send message after 3 attempts");
 }
 </script>
 </body>
